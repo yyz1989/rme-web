@@ -1,0 +1,116 @@
+@(classes:String,properties:String,individuals:String,answer:String,variables:java.util.ArrayList[String],state:String,rules:java.util.ArrayList[String])
+<!--Yang added:-->
+@import helper._
+@import scala.collection.JavaConversions._
+@main("Ontology") {
+    <h2>Ontology Structure:</h2>
+    <textarea rows="15" cols="40" style="text-indent:-2em">
+    @classes
+    </textarea>
+    <textarea rows="15" cols="40" style="text-indent:-2em">
+    @properties
+    </textarea>
+    <textarea rows="15" cols="40" style="text-indent:-2em">
+    @individuals
+    </textarea>
+    <br/>
+    <form action="/ontology/save" method="GET" id="saveOntology">
+    <strong>Save ontology to file?</strong><input type="submit" value="OK">
+    </form>
+    <form action="/ontology/rebuild" method="GET" id="rebuildOntology">
+        <strong>Delete current ontology and reinitialize?</strong>    <input type="submit" value="OK">
+    </form>
+    <br/>
+    <h2>DL Query (in Manchester OWL Syntax):</h2>
+    <form action="/ontology/query" method="GET" id="dlQuery">
+    <input type="text" name="query" style="width:80%">
+    <br/>
+    Super Classes:<input type="checkbox" name="super" value="supercls" /> &nbsp;&nbsp;
+    Equivalent Classes:<input type="checkbox" name="equiv" value="equivcls" />            &nbsp;&nbsp;
+    Sub Classes:<input type="checkbox" name="sub" value="subcls" />           &nbsp;&nbsp;
+    Individuals:<input type="checkbox" name="ins" value="instance" checked="checked" />      &nbsp;&nbsp;
+    <input type="submit" value="Ask">
+    </form>
+    <br/>
+    <h2>Query Result:</h2>
+    <textarea rows="15" cols="40" style="text-indent:-2em">
+    @answer
+    </textarea>
+    <br/>
+
+    <h2>Batch Operation:</h2>
+    <form action="/ontology/batchstate" method="GET" id="batchStateGet">
+    Description of variables: <input type="text" name="variable" style="width:30%">
+    <br/>
+    State value: <input type="text" name="state">
+    <input type="submit" value="Parse to commands">
+    </form>
+    <br/>
+    Example: find all the lamps that is in the floor3: "LAMP and isContainedIn value floor3"
+    <br/>
+    @if(!variables.isEmpty) {
+        <form action="/ontology/batchstate" method="POST" id="batchStatePost">
+        <table border="2" cellpadding="5">
+        <tr><h2>
+            <th>Variable</th>
+            <th>State</th>
+            <th>Selected</th>
+        </h2></tr>
+        @defining(variables.toList) { list=>
+                @for(variable<-list.iterator) {
+                        <tr>
+                        <td>@variable</td>
+                        <td><input type="text" name=@variable value=@state></td>
+                        <td><input type="checkbox" name="selected[]" value=@variable checked="checked"></td>
+                        </tr>
+                }
+        }
+        </table>
+        <input type="submit" value="Execute All Update Operations">
+        </form>
+    }
+
+    <br/>
+    <h2>Batch Rule Generation:</h2>
+    <form action="/ontology/batchrule" method="GET" id="batchRuleGet">
+        Description of rules (e.g., [PRESENCE and isContainedIn some DESK]=false=>room*.lamp?=off): <br/><textarea name="rule" cols="80" rows="3"></textarea><br/>
+        <input type="submit" value="Parse to rules">
+        <br/>
+    </form>
+    @if(!rules.isEmpty) {
+    <form action="/ontology/batchrule" method="POST" id="batchRulePost">
+        <table border="2" cellpadding="5">
+            <tr><h2>
+                <th>Rule Description</th>
+                <th>Selected</th>
+            </h2></tr>
+            @defining(rules.toList) { rulelist=>
+                @for(rule<-rulelist.iterator) {
+                <tr>
+                    <td><textarea name=@rule cols="100" rows="3">@rule</textarea></td>
+                    <td><input type="checkbox" name="selected[]" value=@rule checked="checked"></td>
+                </tr>
+                }
+            }
+        </table>
+        <input type="submit" value="Insert All Rules">
+    </form>
+    }
+    <br/>
+    <h3>Syntax:</h3>
+    First of all, please write a rule in a propositional logic format, as described in "Help"<br/>   <br/>
+    Secondly, please specify ONE description of "main" variables constraining the scope of the rules applied, in <br/>     <br/>
+    Manchester syntax and include with square braces "[" and "]". Replace the variable in the rule with this description.<br/>      <br/>
+    Finally, replace the serial numbers of service name and variable name of other variables with star "*" and <br/>           <br/>
+    question mark "?", the numbers will loop according to the serial numbers of the "main" variables described above.<br/>      <br/>
+    <h3>Example:</h3>
+    A rule could look like:<br/>                                         <br/>
+    "room1.presence1=true&desk1.presence1=false=>room1.lamp1=on|(room1.outsidelux1>80&room1.blinds1=up"<br/>     <br/>
+    Now we want to apply this rule to all rooms which has at least a presence detector on a desk, so first of all we<br/>    <br/>
+    need to filter variables like "desk1.presence1", "desk5.presence1", "desk13_1.presence1_32", and so forth<br/>      <br/>
+    In Manchester syntax it can be "PRESENCE and isContainedIn some (DESK and isContainedIn some ROOM)".<br/>           <br/>
+    Now put it into the original rule, and replace the serial numbers in other variables with wildcard "*" and "?"<br/>       <br/>
+    Finally, we have a rule which can be send into the system:<br/>                                        <br/>
+    "room*.presence?=true&[PRESENCE and isContainedIn some (DESK and isContainedIn some ROOM)]=false=><br/>     <br/>
+    room*.lamp?=on|(room*.outsidelux?>80&room*.blinds?=up)"                             <br/>
+}
